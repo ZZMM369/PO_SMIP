@@ -1,0 +1,59 @@
+function [TT,SAa]=ERS_segmental_analysis_method(time,gd)
+t=time;
+a=gd;
+g=980;
+kesi=0.05;
+m=1;
+i=1;
+SA(1,1)=max(max(a),-min(a));
+PSA(1,1)=SA(1,1);
+SV(1,1)=0;
+SD(1,1)=0;
+TT(1,1)=0;
+for T=0.01:0.01:6
+    i=i+1;
+    TT(1,i)=0.01*i;
+    dt=0.01;
+    ug=[];P=[];u=[];v=[];aa=[];T2=[];
+    if(dt/T)>0.02
+        dt=T*0.02;
+        tt=0:dt:max(t);
+        ug=interp1(t,a,tt')*g;
+    else
+        ug=a*g;
+    end
+    wn=2*pi/T;
+    k=wn*wn*m;
+    wD=wn*sqrt(1-kesi^2);
+    wDdt=wD*dt;
+    e=exp(-kesi*wn*dt);
+    A=e*(kesi/sqrt(1-kesi^2)*sin(wDdt)+cos(wDdt));
+    B=e*sin(wDdt)/wD;
+    C=1/k*(2*kesi/(wn*dt)+e*(((1-2*kesi^2)/(wD*dt)-kesi/sqrt(1-kesi^2))*sin(wD*dt)-(1+2*kesi/(wn*dt))*cos(wD*dt)));
+    D=1/k*(1-2*kesi/(wn*dt)+e*((2*kesi^2-1)/(wD*dt)*sin(wD*dt)+2*kesi/(wn*dt)*cos(wD*dt)));
+    A1=-e*(wn/sqrt(1-kesi^2)*sin(wDdt));
+    B1=e*(cos(wDdt)-kesi/sqrt(1-kesi^2)*sin(wDdt));
+    C1=1/k*(-1/dt+e*((wn/sqrt(1-kesi^2)+kesi/(dt*sqrt(1-kesi^2)))*sin(wD*dt)+1/dt*cos(wD*dt)));
+    D1=1/(k*dt)*(1-e*(kesi/sqrt(1-kesi^2)*sin(wD*dt)+cos(wD*dt)));
+    u0=0;v0=0;
+    n1=length(ug);
+    for j=1:n1
+        if j==1
+            P(j,1)=-m*ug(j,1);
+            u(j,1)=u0;
+            v(j,1)=v0;
+            aa(j,1)=(-2*kesi*wn*v(j,1)-k/m*u(j,1))/g;
+        else
+            P(j,1)=-m*ug(j,1);
+            u(j,1)=A*u(j-1,1)+B*v(j-1,1)+C*P(j-1,1)+D*P(j,1);
+            v(j,1)=A1*u(j-1,1)+B1*v(j-1,1)+C1*P(j-1,1)+D1*P(j,1);
+            aa(j,1)=(-2*kesi*wn*v(j,1)-k/m*u(j,1))/g;
+        end
+    end
+    SD(i,1)=max(max(u),-min(u));
+    SV(i,1)=max(max(v),-min(v));
+    SA(i,1)=max(max(aa),-min(aa));
+    PSV(i,1)=wn*SD(i,1);
+    PSA(i,1)=wn*wn*SD(i,1)/g;
+end
+SAa=SA(:,1);
